@@ -1,0 +1,9 @@
+{
+  "customerId": "PASTE_CUSTOMER_ID_HERE",
+  "staffId": "PASTE_STAFF_ID_HERE",
+  "serviceId": "PASTE_SERVICE_ID_HERE",
+  "startAt": "2026-07-26T10:00:00.000Z",
+  "source": "ADMIN",
+  "customerNotes": "Customer requested quiet appointment",
+  "internalNotes": "VIP Client"
+}

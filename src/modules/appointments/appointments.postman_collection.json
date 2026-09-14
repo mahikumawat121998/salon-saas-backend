@@ -1,0 +1,136 @@
+{
+  "info": {
+    "_postman_id": "a823b11d-720e-4c12-9c3f-91ab421f1122",
+    "name": "Appointments API Collection",
+    "description": "Postman Collection for Salon SaaS Appointments Module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Get Available Slots",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/appointments/available-slots?staffId={{staffId}}&serviceId={{serviceId}}&date=2026-07-26&slotIntervalMinutes=15",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments", "available-slots"],
+          "query": [
+            { "key": "staffId", "value": "{{staffId}}" },
+            { "key": "serviceId", "value": "{{serviceId}}" },
+            { "key": "date", "value": "2026-07-26" },
+            { "key": "slotIntervalMinutes", "value": "15" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Create Appointment",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"staffId\": \"{{staffId}}\",\n  \"serviceId\": \"{{serviceId}}\",\n  \"startAt\": \"2026-07-26T10:00:00.000Z\",\n  \"source\": \"ADMIN\",\n  \"customerNotes\": \"Customer requested quiet appointment\",\n  \"internalNotes\": \"VIP Client\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/appointments",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments"]
+        }
+      }
+    },
+    {
+      "name": "3. Get Calendar Appointments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/appointments/calendar?startDate=2026-07-01T00:00:00.000Z&endDate=2026-07-31T23:59:59.999Z&staffId={{staffId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments", "calendar"],
+          "query": [
+            { "key": "startDate", "value": "2026-07-01T00:00:00.000Z" },
+            { "key": "endDate", "value": "2026-07-31T23:59:59.999Z" },
+            { "key": "staffId", "value": "{{staffId}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Get Appointment By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/appointments/{{appointmentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments", "{{appointmentId}}"]
+        }
+      }
+    },
+    {
+      "name": "5. Reschedule Appointment",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"startAt\": \"2026-07-27T11:30:00.000Z\",\n  \"staffId\": \"{{staffId}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/appointments/{{appointmentId}}/reschedule",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments", "{{appointmentId}}", "reschedule"]
+        }
+      }
+    },
+    {
+      "name": "6. Cancel Appointment",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cancellationReason\": \"Client called to reschedule due to emergency travel plans\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/appointments/{{appointmentId}}/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments", "{{appointmentId}}", "cancel"]
+        }
+      }
+    },
+    {
+      "name": "7. Update Appointment Status",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["appointments", "{{appointmentId}}", "status"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api" },
+    { "key": "staffId", "value": "YOUR_STAFF_UUID" },
+    { "key": "serviceId", "value": "YOUR_SERVICE_UUID" },
+    { "key": "customerId", "value": "YOUR_CUSTOMER_UUID" },
+    { "key": "appointmentId", "value": "YOUR_APPOINTMENT_UUID" }
+  ]
+}

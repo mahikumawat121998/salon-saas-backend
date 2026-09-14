@@ -15,6 +15,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'https://salon-saas-frontend.pages.dev',
       /\.salon-saas-frontend\.pages\.dev$/,
+      'https://app.blogcube.site',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

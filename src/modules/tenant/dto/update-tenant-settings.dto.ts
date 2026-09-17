@@ -12,4 +12,8 @@ export class UpdateTenantSettingsDto {
   @IsOptional()
   @IsString()
   currency?: string;
+
+  @IsOptional()
+  @IsString()
+  logo?: string;
 }

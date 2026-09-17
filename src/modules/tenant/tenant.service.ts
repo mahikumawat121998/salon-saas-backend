@@ -101,10 +101,13 @@ export class TenantService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      if (dto.name) {
+      if (dto.name || dto.logo !== undefined) {
         await tx.tenant.update({
           where: { id: tenantId },
-          data: { name: dto.name },
+          data: { 
+            ...(dto.name && { name: dto.name }),
+            ...(dto.logo !== undefined && { logo: dto.logo })
+          },
         });
       }
 

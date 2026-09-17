@@ -12,4 +12,8 @@ export class UpdateStaffDto {
   @IsOptional()
   @IsEnum(["ACTIVE", "INACTIVE"])
   status?: string;
+
+  @IsOptional()
+  @IsString()
+  profilePicture?: string;
 }

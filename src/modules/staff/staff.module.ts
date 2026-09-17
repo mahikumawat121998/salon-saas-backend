@@ -11,10 +11,10 @@ import { StaffLeaveService } from "./leaves/staff-leave.service";
 
 @Module({
   controllers: [
-    StaffController,
     StaffScheduleController,
     StaffBreakController,
     StaffLeaveController,
+    StaffController,
   ],
 
   providers: [

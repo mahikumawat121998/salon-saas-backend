@@ -3,6 +3,8 @@ import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
 import { LogoutDto } from "./dto/logout.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { CurrentUser } from "./decorators/current-user.decorator";
 import { ApiMessage } from "src/common/decorators/api-message.decorator";
@@ -36,6 +38,21 @@ export class AuthController {
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refresh(dto.refreshToken);
   }
+
+  @Post("forgot-password")
+  @Public()
+  @ApiMessage("Password reset request processed")
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post("reset-password")
+  @Public()
+  @ApiMessage("Password reset successfully")
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
   @Post("logout")
   @ApiMessage("Logout successful")
   logout(@Body() dto: LogoutDto) {

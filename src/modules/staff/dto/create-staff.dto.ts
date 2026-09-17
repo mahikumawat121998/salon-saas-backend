@@ -7,4 +7,8 @@ export class CreateStaffDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  profilePicture?: string;
 }

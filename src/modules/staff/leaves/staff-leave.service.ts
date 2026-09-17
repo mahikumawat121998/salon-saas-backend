@@ -37,6 +37,14 @@ export class StaffLeaveService {
     });
   }
 
+  async getAllLeaves(tenantId: string) {
+    return this.prisma.staffLeave.findMany({
+      where: { tenantId },
+      include: { staff: true },
+      orderBy: { startAt: "desc" },
+    });
+  }
+
   async deleteLeave(leaveId: string, tenantId: string) {
     const leave = await this.prisma.staffLeave.findFirst({
       where: { id: leaveId, tenantId },

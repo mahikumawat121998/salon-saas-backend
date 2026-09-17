@@ -1,4 +1,4 @@
-import { PrismaClient, AppointmentStatus, StaffStatus, InvoiceStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { PrismaClient, AppointmentStatus, StaffStatus, InvoiceStatus, PaymentMethod, PaymentStatus, AttendanceStatus, BreakType } from "@prisma/client";
 import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
@@ -8,6 +8,13 @@ async function main() {
 
   // Clean up existing tables for idempotent seeding
   await prisma.auditLog.deleteMany();
+  await prisma.payslipItem.deleteMany();
+  await prisma.payslip.deleteMany();
+  await prisma.payrollPeriod.deleteMany();
+  await prisma.staffCommissionTier.deleteMany();
+  await prisma.staffCommissionRule.deleteMany();
+  await prisma.staffSalaryComponentConfig.deleteMany();
+  await prisma.staffSalaryConfig.deleteMany();
   await prisma.tenantSubscription.deleteMany();
   await prisma.planFeature.deleteMany();
   await prisma.subscriptionPlan.deleteMany();
@@ -90,6 +97,9 @@ async function main() {
     { code: "BILLING", name: "POS & Billing", description: "POS invoices, payments & receipts", category: "Core Operations" },
     { code: "INVENTORY", name: "Stock & Inventory", description: "Track product stock, suppliers & reorders", category: "Advanced Modules" },
     { code: "REPORTS", name: "Business Analytics", description: "Revenue analytics & performance reports", category: "Advanced Modules" },
+    { code: "PAYROLL", name: "Payroll Management", description: "Staff salaries, commissions, payroll periods & payslips", category: "Advanced Modules" },
+    { code: "ATTENDANCE", name: "Attendance Tracking", description: "Clock-in/out, breaks, and working hours", category: "Advanced Modules" },
+    { code: "LEAVE", name: "Leave Management", description: "Time-off requests, balances, and approvals", category: "Advanced Modules" },
     { code: "MARKETING", name: "Marketing Campaigns", description: "SMS & email promotions", category: "Growth & Engagement" },
     { code: "LOYALTY", name: "Loyalty Program", description: "Customer rewards & points management", category: "Growth & Engagement" },
     { code: "WHATSAPP", name: "WhatsApp Automation", description: "Automated booking & reminder messages", category: "Growth & Engagement" },
@@ -143,10 +153,24 @@ async function main() {
     { code: "reports.view", name: "View Analytics", description: "View revenue & sales reports", featureCode: "REPORTS" },
     { code: "reports.export", name: "Export Reports", description: "Export financial reports", featureCode: "REPORTS" },
 
+    // Payroll
+    { code: "payroll.view", name: "View Payroll", description: "View payroll periods & staff payslips", featureCode: "PAYROLL" },
+    { code: "payroll.config", name: "Configure Salaries", description: "Set staff pay structures, allowances & commissions", featureCode: "PAYROLL" },
+    { code: "payroll.process", name: "Process Payroll", description: "Create & calculate draft payroll runs", featureCode: "PAYROLL" },
+    { code: "payroll.approve", name: "Approve Payroll", description: "Approve payroll runs for disbursement", featureCode: "PAYROLL" },
+    { code: "payroll.pay", name: "Disburse Payroll", description: "Record payments & mark payslips as paid", featureCode: "PAYROLL" },
+    { code: "payroll.reports", name: "Payroll Analytics", description: "View payroll cost & commission reports", featureCode: "PAYROLL" },
+
     // Marketing & Loyalty & WhatsApp
     { code: "marketing.view", name: "View Campaigns", description: "View marketing campaigns", featureCode: "MARKETING" },
     { code: "loyalty.manage", name: "Manage Loyalty", description: "Configure customer loyalty points", featureCode: "LOYALTY" },
     { code: "whatsapp.send", name: "Send WhatsApp", description: "Send automated WhatsApp notifications", featureCode: "WHATSAPP" },
+    
+    // Attendance & Leave
+    { code: "attendance.view", name: "View Attendance", description: "View attendance records", featureCode: "ATTENDANCE" },
+    { code: "attendance.manage", name: "Manage Attendance", description: "Edit attendance records", featureCode: "ATTENDANCE" },
+    { code: "leave.view", name: "View Leaves", description: "View leave requests", featureCode: "LEAVE" },
+    { code: "leave.manage", name: "Manage Leaves", description: "Approve or reject leaves", featureCode: "LEAVE" },
   ];
 
   const permissionsMap: Record<string, any> = {};
@@ -189,7 +213,7 @@ async function main() {
       maxStaff: 15,
       enableInventory: true,
       enableReports: true,
-      allowedModules: ["APPOINTMENTS", "CUSTOMERS", "SERVICES", "STAFF", "BILLING", "INVENTORY", "REPORTS", "LOYALTY"],
+      allowedModules: ["APPOINTMENTS", "CUSTOMERS", "SERVICES", "STAFF", "BILLING", "INVENTORY", "REPORTS", "PAYROLL", "LOYALTY", "ATTENDANCE", "LEAVE"],
     },
   });
 
@@ -206,7 +230,7 @@ async function main() {
       enableReports: true,
       enableMarketing: true,
       enableWhatsApp: true,
-      allowedModules: ["APPOINTMENTS", "CUSTOMERS", "SERVICES", "STAFF", "BILLING", "INVENTORY", "REPORTS", "MARKETING", "LOYALTY", "WHATSAPP"],
+      allowedModules: ["APPOINTMENTS", "CUSTOMERS", "SERVICES", "STAFF", "BILLING", "INVENTORY", "REPORTS", "PAYROLL", "MARKETING", "LOYALTY", "WHATSAPP", "ATTENDANCE", "LEAVE"],
     },
   });
 
@@ -223,7 +247,7 @@ async function main() {
       enableReports: true,
       enableMarketing: true,
       enableWhatsApp: true,
-      allowedModules: ["APPOINTMENTS", "CUSTOMERS", "SERVICES", "STAFF", "BILLING", "INVENTORY", "REPORTS", "MARKETING", "LOYALTY", "WHATSAPP"],
+      allowedModules: ["APPOINTMENTS", "CUSTOMERS", "SERVICES", "STAFF", "BILLING", "INVENTORY", "REPORTS", "PAYROLL", "MARKETING", "LOYALTY", "WHATSAPP", "ATTENDANCE", "LEAVE"],
     },
   });
 
@@ -233,17 +257,17 @@ async function main() {
     await prisma.planFeature.create({ data: { planId: starterPlan.id, featureId: featuresMap[code].id } });
   }
 
-  const proFeatureCodes = ["CUSTOMERS", "APPOINTMENTS", "STAFF", "SERVICES", "BILLING", "INVENTORY", "REPORTS", "LOYALTY"];
+  const proFeatureCodes = ["CUSTOMERS", "APPOINTMENTS", "STAFF", "SERVICES", "BILLING", "INVENTORY", "REPORTS", "PAYROLL", "LOYALTY", "ATTENDANCE", "LEAVE"];
   for (const code of proFeatureCodes) {
     await prisma.planFeature.create({ data: { planId: proPlan.id, featureId: featuresMap[code].id } });
   }
 
-  const enterpriseFeatureCodes = ["CUSTOMERS", "APPOINTMENTS", "STAFF", "SERVICES", "BILLING", "INVENTORY", "REPORTS", "MARKETING", "LOYALTY", "WHATSAPP"];
+  const enterpriseFeatureCodes = ["CUSTOMERS", "APPOINTMENTS", "STAFF", "SERVICES", "BILLING", "INVENTORY", "REPORTS", "PAYROLL", "MARKETING", "LOYALTY", "WHATSAPP", "ATTENDANCE", "LEAVE"];
   for (const code of enterpriseFeatureCodes) {
     await prisma.planFeature.create({ data: { planId: enterprisePlan.id, featureId: featuresMap[code].id } });
   }
 
-  const trialFeatureCodes = ["CUSTOMERS", "APPOINTMENTS", "STAFF", "SERVICES", "BILLING", "INVENTORY", "REPORTS", "MARKETING", "LOYALTY", "WHATSAPP"];
+  const trialFeatureCodes = ["CUSTOMERS", "APPOINTMENTS", "STAFF", "SERVICES", "BILLING", "INVENTORY", "REPORTS", "MARKETING", "LOYALTY", "WHATSAPP", "ATTENDANCE", "LEAVE", "PAYROLL"];
   for (const code of trialFeatureCodes) {
     await prisma.planFeature.create({ data: { planId: trialPlan.id, featureId: featuresMap[code].id } });
   }
@@ -252,7 +276,7 @@ async function main() {
   console.log("🏢 Seeding Demo Salon Tenant...");
   const demoTenant = await prisma.tenant.create({
     data: {
-      name: "Glamour Haven Salon",
+      name: "Urban Cuts",
       status: "ACTIVE",
       settings: {
         create: {
@@ -349,7 +373,7 @@ async function main() {
   await prisma.user.create({
     data: {
       tenantId: demoTenant.id,
-      email: "owner@glamourhaven.com",
+      email: "owner@urbancuts.com",
       passwordHash,
       roles: { create: { roleId: ownerRole.id } },
     },
@@ -358,7 +382,7 @@ async function main() {
   await prisma.user.create({
     data: {
       tenantId: demoTenant.id,
-      email: "manager@glamourhaven.com",
+      email: "manager@urbancuts.com",
       passwordHash: await bcrypt.hash("Manager@123", 10),
       roles: { create: { roleId: managerRole.id } },
     },
@@ -367,7 +391,7 @@ async function main() {
   await prisma.user.create({
     data: {
       tenantId: demoTenant.id,
-      email: "reception@glamourhaven.com",
+      email: "reception@urbancuts.com",
       passwordHash: await bcrypt.hash("Reception@123", 10),
       roles: { create: { roleId: receptionistRole.id } },
     },
@@ -426,7 +450,68 @@ async function main() {
     data: { invoiceId: inv1.id, amount: 850.00, method: PaymentMethod.UPI, status: PaymentStatus.COMPLETED },
   });
 
-  console.log("✅ 3-Layer Authorization Seeding completed successfully!");
+  // Seed Attendance & Leave Policy
+  await prisma.tenantAttendancePolicy.create({
+    data: { tenantId: demoTenant.id, shiftStartTime: '09:00', shiftEndTime: '18:00' },
+  });
+  
+  // Seed 14 days of Attendance History for Aarav
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  for (let i = 14; i >= 0; i--) {
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() - i);
+    const dayOfWeek = targetDate.getDay();
+
+    if (dayOfWeek === 0) {
+      await prisma.staffAttendance.create({
+        data: { tenantId: demoTenant.id, staffId: staff1.id, date: targetDate, status: AttendanceStatus.WEEK_OFF, totalHours: 0, workingHours: 0 }
+      });
+      continue;
+    }
+
+    if (Math.random() < 0.05) {
+      await prisma.staffAttendance.create({
+        data: { tenantId: demoTenant.id, staffId: staff1.id, date: targetDate, status: AttendanceStatus.ABSENT, totalHours: 0, workingHours: 0 }
+      });
+      continue;
+    }
+
+    const clockIn = new Date(targetDate);
+    clockIn.setUTCHours(9, Math.floor(Math.random() * 30), 0, 0); 
+    const clockOut = new Date(targetDate);
+    clockOut.setUTCHours(17, 30 + Math.floor(Math.random() * 60), 0, 0);
+
+    const totalHours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+    const breakDurationMinutes = 60;
+    const workingHours = totalHours - (breakDurationMinutes / 60);
+
+    const attendance = await prisma.staffAttendance.create({
+      data: { tenantId: demoTenant.id, staffId: staff1.id, date: targetDate, status: AttendanceStatus.PRESENT, clockIn, clockOut, totalHours, workingHours }
+    });
+
+    const breakStart = new Date(targetDate);
+    breakStart.setUTCHours(13, 0, 0, 0);
+    const breakEnd = new Date(targetDate);
+    breakEnd.setUTCHours(14, 0, 0, 0);
+
+    await prisma.staffAttendanceBreak.create({
+      data: { attendanceId: attendance.id, startTime: breakStart, endTime: breakEnd, duration: breakDurationMinutes, type: BreakType.LUNCH }
+    });
+  }
+
+  // Seed Leave Requests
+  const futureStart = new Date();
+  futureStart.setDate(today.getDate() + 5);
+  const futureEnd = new Date(futureStart);
+  futureEnd.setDate(futureStart.getDate() + 2);
+
+  await prisma.staffLeave.create({
+    data: { tenantId: demoTenant.id, staffId: staff1.id, startAt: futureStart, endAt: futureEnd, reason: 'Family Vacation' }
+  });
+
+  console.log("✅ 3-Layer Authorization, Attendance, and Leave Seeding completed successfully!");
 }
 
 main()

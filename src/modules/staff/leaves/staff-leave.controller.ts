@@ -9,6 +9,13 @@ import { ApiMessage } from "../../../common/decorators/api-message.decorator";
 export class StaffLeaveController {
   constructor(private readonly staffLeaveService: StaffLeaveService) {}
 
+  @Get("leaves")
+  @RequirePermission("STAFF_VIEW")
+  @ApiMessage("All staff leaves fetched successfully")
+  getAllLeaves(@CurrentUser() user: any) {
+    return this.staffLeaveService.getAllLeaves(user.tenantId);
+  }
+
   @Post(":staffId/leaves")
   @RequirePermission("STAFF_UPDATE")
   @ApiMessage("Staff leave requested successfully")

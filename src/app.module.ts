@@ -5,6 +5,7 @@ import { AppService } from "./app.service";
 
 import { PrismaModule } from "./common/database/prisma.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
 import { PermissionGuard } from "./common/guards/permission.guard";
@@ -22,6 +23,8 @@ import { BillingModule } from "./modules/billing/billing.module";
 import { RolesModule } from "./modules/roles/roles.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { PayrollModule } from "./modules/payroll/payroll.module";
+import { AttendanceModule } from './modules/attendance/attendance.module';
 
 @Module({
   imports: [
@@ -38,6 +41,9 @@ import { AdminModule } from "./modules/admin/admin.module";
     RolesModule,
     ReportsModule,
     AdminModule,
+    PayrollModule,
+    AttendanceModule,
+    UploadsModule,
   ],
 
   controllers: [AppController],

@@ -11,6 +11,7 @@ model Tenant {
   id        String       @id @default(uuid())
   name      String
   status    TenantStatus @default(ACTIVE)
+  logo      String?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
@@ -30,6 +31,11 @@ model Tenant {
   inventoryProducts InventoryProduct[]
   businessHours     TenantBusinessHour[]
   subscription      TenantSubscription?
+  salaryConfigs     StaffSalaryConfig[]
+  payrollPeriods    PayrollPeriod[]
+  payslips          Payslip[]
+  attendancePolicy  TenantAttendancePolicy?
+  attendances       StaffAttendance[]
 }
 
 model TenantSettings {
@@ -67,9 +73,10 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id])
-  roles         UserRole[]
-  refreshTokens RefreshToken[]
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  roles               UserRole[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@unique([tenantId, email])
 }
@@ -173,12 +180,13 @@ model CustomerNote {
 }
 
 model Staff {
-  id        String      @id @default(uuid())
-  tenantId  String
-  name      String
-  phone     String?
-  status    StaffStatus @default(ACTIVE)
-  createdAt DateTime    @default(now())
+  id             String      @id @default(uuid())
+  tenantId       String
+  name           String
+  phone          String?
+  status         StaffStatus @default(ACTIVE)
+  profilePicture String?
+  createdAt      DateTime    @default(now())
 
   tenant       Tenant          @relation(fields: [tenantId], references: [id])
   appointments Appointment[]
@@ -186,6 +194,9 @@ model Staff {
   breaks       StaffBreak[]
   leaves       StaffLeave[]
   services     StaffService[]
+  salaryConfig StaffSalaryConfig?
+  payslips     Payslip[]
+  attendances  StaffAttendance[]
 }
 
 model StaffSchedule {
@@ -465,6 +476,17 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -568,3 +590,274 @@ model AuditLog {
   @@index([actorUserId])
   @@index([targetTenantId])
 }
+
+enum PayStructureType {
+  MONTHLY
+  DAILY
+  HOURLY
+  FIXED_AND_COMMISSION
+  COMMISSION_ONLY
+}
+
+enum ComponentType {
+  EARNING
+  DEDUCTION
+}
+
+enum ComponentCalculationType {
+  FIXED_AMOUNT
+  PERCENTAGE_OF_BASE
+}
+
+enum CommissionType {
+  SERVICE
+  PRODUCT
+}
+
+enum CommissionCalcMode {
+  FLAT_PERCENTAGE
+  FLAT_AMOUNT
+  TIERED_VOLUME
+}
+
+enum PayrollPeriodStatus {
+  OPEN
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayslipStatus {
+  DRAFT
+  APPROVED
+  PAID
+  ON_HOLD
+}
+
+enum PaymentMode {
+  CASH
+  BANK_TRANSFER
+  UPI
+  CHEQUE
+  OTHER
+}
+
+model StaffSalaryConfig {
+  id                  String           @id @default(uuid())
+  tenantId            String
+  staffId             String           @unique
+  payStructureType    PayStructureType @default(MONTHLY)
+  baseSalary          Decimal          @default(0)
+  dailyRate           Decimal?         @default(0)
+  hourlyRate          Decimal?         @default(0)
+  overtimeRatePerHour Decimal?         @default(0)
+  overtimeMultiplier  Float?           @default(1.5)
+  effectiveFrom       DateTime         @default(now())
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  tenant          Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff           Staff                        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  components      StaffSalaryComponentConfig[]
+  commissionRules StaffCommissionRule[]
+
+  @@index([tenantId])
+}
+
+model StaffSalaryComponentConfig {
+  id              String                   @id @default(uuid())
+  salaryConfigId  String
+  name            String
+  type            ComponentType
+  calculationType ComponentCalculationType
+  value           Decimal
+  isTaxable       Boolean                  @default(true)
+  isActive        Boolean                  @default(true)
+
+  salaryConfig StaffSalaryConfig @relation(fields: [salaryConfigId], references: [id], onDelete: Cascade)
+
+  @@index([salaryConfigId])
+}
+
+model StaffCommissionRule {
+  id             String             @id @default(uuid())
+  salaryConfigId String
+  type           CommissionType
+  calcMode       CommissionCalcMode
+  flatRate       Decimal?           @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  salaryConfig StaffSalaryConfig     @relation(fields: [salaryConfigId], references: [id], onDelete: Cascade)
+  tiers        StaffCommissionTier[]
+
+  @@index([salaryConfigId])
+}
+
+model StaffCommissionTier {
+  id               String   @id @default(uuid())
+  commissionRuleId String
+  minRevenueVolume Decimal
+  maxRevenueVolume Decimal?
+  commissionRate   Decimal
+
+  rule StaffCommissionRule @relation(fields: [commissionRuleId], references: [id], onDelete: Cascade)
+
+  @@index([commissionRuleId])
+}
+
+model PayrollPeriod {
+  id               String              @id @default(uuid())
+  tenantId         String
+  name             String
+  startDate        DateTime
+  endDate          DateTime
+  workingDaysCount Int                 @default(26)
+  status           PayrollPeriodStatus @default(OPEN)
+  processedAt      DateTime?
+  approvedAt       DateTime?
+  approvedBy       String?
+  paidAt           DateTime?
+  totalGrossPay    Decimal             @default(0)
+  totalDeductions  Decimal             @default(0)
+  totalNetPay      Decimal             @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payslips Payslip[]
+
+  @@index([tenantId, startDate, endDate])
+}
+
+model Payslip {
+  id                       String           @id @default(uuid())
+  tenantId                 String
+  payrollPeriodId          String
+  staffId                  String
+  payStructureType         PayStructureType
+  totalWorkingDays         Int              @default(0)
+  presentDays              Float            @default(0)
+  unpaidLeaveDays          Float            @default(0)
+  paidLeaveDays            Float            @default(0)
+  overtimeHours            Float            @default(0)
+  baseEarned               Decimal          @default(0)
+  overtimePay              Decimal          @default(0)
+  serviceCommission        Decimal          @default(0)
+  productCommission        Decimal          @default(0)
+  allowancesTotal          Decimal          @default(0)
+  bonusAmount              Decimal          @default(0)
+  grossPay                 Decimal          @default(0)
+  leaveDeduction           Decimal          @default(0)
+  otherDeductionsTotal     Decimal          @default(0)
+  statutoryDeductionsTotal Decimal          @default(0)
+  totalDeductions          Decimal          @default(0)
+  netPay                   Decimal          @default(0)
+  status                   PayslipStatus    @default(DRAFT)
+  paymentMode              PaymentMode?
+  paymentReference         String?
+  paymentNotes             String?
+  paidAt                   DateTime?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollPeriod PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  staff         Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  items         PayslipItem[]
+
+  @@unique([payrollPeriodId, staffId])
+  @@index([tenantId, staffId])
+}
+
+model PayslipItem {
+  id        String        @id @default(uuid())
+  payslipId String
+  name      String
+  category  String
+  type      ComponentType
+  amount    Decimal
+
+  payslip Payslip @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+
+  @@index([payslipId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  HALF_DAY
+  ON_LEAVE
+  HOLIDAY
+  WEEK_OFF
+}
+
+enum BreakType {
+  LUNCH
+  SHORT
+  OTHER
+}
+
+model TenantAttendancePolicy {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique
+  shiftStartTime   String   @default("09:00") // HH:mm
+  shiftEndTime     String   @default("18:00")
+  lateThreshold    Int      @default(15)      // minutes
+  halfDayThreshold Int      @default(240)     // minutes (4 hours)
+  minWorkingHours  Int      @default(480)     // minutes (8 hours)
+  areBreaksPaid    Boolean  @default(false)
+  updatedAt        DateTime @updatedAt
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model StaffAttendance {
+  id            String           @id @default(uuid())
+  tenantId      String
+  staffId       String
+  date          DateTime         // Stored at 00:00:00 UTC for the local day
+  status        AttendanceStatus
+  clockIn       DateTime?
+  clockOut      DateTime?
+  totalHours    Float            @default(0) // Raw hours
+  workingHours  Float            @default(0) // Total hours minus unpaid breaks
+  overtimeHours Float            @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff         Staff            @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  breaks        StaffAttendanceBreak[]
+  corrections   AttendanceCorrection[]
+
+  @@unique([tenantId, staffId, date])
+}
+
+model StaffAttendanceBreak {
+  id           String          @id @default(uuid())
+  attendanceId String
+  startTime    DateTime
+  endTime      DateTime?
+  duration     Float           @default(0) // Minutes
+  type         BreakType       @default(LUNCH)
+  
+  attendance   StaffAttendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceCorrection {
+  id           String          @id @default(uuid())
+  attendanceId String
+  changedBy    String          // userId of manager
+  reason       String
+  oldClockIn   DateTime?
+  newClockIn   DateTime?
+  oldClockOut  DateTime?
+  newClockOut  DateTime?
+  createdAt    DateTime        @default(now())
+
+  attendance   StaffAttendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+}
+

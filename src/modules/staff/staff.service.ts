@@ -12,6 +12,7 @@ export class StaffService {
         tenantId,
         name: dto.name,
         phone: dto.phone,
+        profilePicture: dto.profilePicture,
       },
     });
   }

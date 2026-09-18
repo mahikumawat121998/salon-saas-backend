@@ -10,6 +10,10 @@ export class UpdateServiceDto {
   @IsOptional()
   name?: string;
 
+  @IsString()
+  @IsOptional()
+  image?: string;
+
   @IsInt()
   @IsOptional()
   durationMinutes?: number;

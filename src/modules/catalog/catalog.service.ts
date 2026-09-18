@@ -39,12 +39,13 @@ export class CatalogService {
     });
   }
   async createService(tenantId: string, dto: CreateServiceDto) {
-    const { categoryId, name, durationMinutes, price, tax, status, commissionRule, eligibleStaffIds } = dto;
+    const { categoryId, name, image, durationMinutes, price, tax, status, commissionRule, eligibleStaffIds } = dto;
     return this.prisma.service.create({
       data: {
         tenantId,
         categoryId,
         name,
+        image,
         durationMinutes,
         price,
         tax,

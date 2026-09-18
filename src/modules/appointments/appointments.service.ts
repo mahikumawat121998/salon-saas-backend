@@ -10,6 +10,7 @@ import { RescheduleAppointmentDto } from "./dto/reschedule-appointment.dto";
 import { CancelAppointmentDto } from "./dto/cancel-appointment.dto";
 import { UpdateAppointmentStatusDto } from "./dto/update-appointment.dto";
 import { GetAvailableSlotsDto, GetCalendarQueryDto } from "./dto/appointment-query.dto";
+import { BulkResolveDto, BulkResolveAction } from "./dto/bulk-resolve.dto";
 import { AppointmentStatus } from "@prisma/client";
 
 @Injectable()
@@ -165,6 +166,11 @@ export class AppointmentsService {
     }
 
     const startAt = new Date(dto.startAt);
+    
+    if (startAt < new Date()) {
+      throw new BadRequestException("Appointments cannot be scheduled in the past");
+    }
+
     const endAt = new Date(startAt.getTime() + service.durationMinutes * 60000);
 
     // Conflict check
@@ -216,6 +222,11 @@ export class AppointmentsService {
 
     const targetStaffId = dto.staffId || appointment.staffId;
     const newStartAt = new Date(dto.startAt);
+
+    if (newStartAt < new Date()) {
+      throw new BadRequestException("Appointments cannot be rescheduled to the past");
+    }
+
     const newEndAt = new Date(newStartAt.getTime() + appointment.durationMinutes * 60000);
 
     await this.verifySlotAvailability(tenantId, targetStaffId, newStartAt, newEndAt, id);
@@ -422,5 +433,27 @@ export class AppointmentsService {
     if (conflictingAppointment) {
       throw new ConflictException("Selected time slot is already booked for this staff member");
     }
+  }
+
+  async bulkResolve(tenantId: string, dto: BulkResolveDto, currentUserId: string) {
+    const results: any[] = [];
+    for (const update of dto.updates) {
+      if (update.action === BulkResolveAction.CANCEL) {
+        const res = await this.cancel(update.appointmentId, tenantId, { cancellationReason: "Staff leave conflict" }, currentUserId);
+        results.push(res);
+      } else if (update.action === BulkResolveAction.REASSIGN && update.newStaffId) {
+        const appt = await this.prisma.appointment.findFirst({
+          where: { id: update.appointmentId, tenantId },
+        });
+        if (appt) {
+          const res = await this.reschedule(update.appointmentId, tenantId, {
+            staffId: update.newStaffId,
+            startAt: appt.startAt,
+          });
+          results.push(res);
+        }
+      }
+    }
+    return results;
   }
 }

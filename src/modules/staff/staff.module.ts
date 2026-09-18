@@ -8,12 +8,15 @@ import { StaffBreakController } from "./breaks/staff-break.controller";
 import { StaffBreakService } from "./breaks/staff-break.service";
 import { StaffLeaveController } from "./leaves/staff-leave.controller";
 import { StaffLeaveService } from "./leaves/staff-leave.service";
+import { StaffAttendanceController } from "./attendance/attendance.controller";
+import { StaffAttendanceService } from "./attendance/attendance.service";
 
 @Module({
   controllers: [
     StaffScheduleController,
     StaffBreakController,
     StaffLeaveController,
+    StaffAttendanceController,
     StaffController,
   ],
 
@@ -22,6 +25,7 @@ import { StaffLeaveService } from "./leaves/staff-leave.service";
     StaffScheduleService,
     StaffBreakService,
     StaffLeaveService,
+    StaffAttendanceService,
   ],
 
   exports: [
@@ -29,6 +33,7 @@ import { StaffLeaveService } from "./leaves/staff-leave.service";
     StaffScheduleService,
     StaffBreakService,
     StaffLeaveService,
+    StaffAttendanceService,
   ],
 })
 export class StaffModule {}

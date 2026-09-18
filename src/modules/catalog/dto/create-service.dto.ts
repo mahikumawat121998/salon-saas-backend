@@ -10,6 +10,10 @@ export class CreateServiceDto {
   @IsNotEmpty()
   name: string;
 
+  @IsString()
+  @IsOptional()
+  image?: string;
+
   @IsInt()
   durationMinutes: number;
 

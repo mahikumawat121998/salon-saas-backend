@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
 import { StaffLeaveService } from "./staff-leave.service";
 import { CreateLeaveDto } from "./dto/create-leave.dto";
+import { UpdateLeaveStatusDto } from "./dto/update-leave-status.dto";
 import { CurrentUser } from "../../auth/decorators/current-user.decorator";
 import { RequirePermission } from "../../../common/decorators/permission.decorator";
 import { ApiMessage } from "../../../common/decorators/api-message.decorator";
@@ -39,5 +40,16 @@ export class StaffLeaveController {
   @ApiMessage("Staff leave deleted successfully")
   deleteLeave(@Param("leaveId") leaveId: string, @CurrentUser() user: any) {
     return this.staffLeaveService.deleteLeave(leaveId, user.tenantId);
+  }
+
+  @Patch("leaves/:leaveId/status")
+  @RequirePermission("STAFF_UPDATE")
+  @ApiMessage("Staff leave status updated successfully")
+  updateLeaveStatus(
+    @Param("leaveId") leaveId: string,
+    @Body() dto: UpdateLeaveStatusDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.staffLeaveService.updateLeaveStatus(leaveId, user.tenantId, dto, user.userId);
   }
 }

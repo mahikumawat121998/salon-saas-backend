@@ -16,6 +16,10 @@ export class UpdateCustomerDto {
 
   @IsOptional()
   @IsString()
+  picture?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 
   @IsOptional()

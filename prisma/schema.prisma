@@ -156,6 +156,7 @@ model Customer {
   name      String
   phone     String?
   email     String?
+  picture   String?
   notes     String?
   dob       DateTime?
   gender    Gender?
@@ -237,9 +238,13 @@ model StaffLeave {
   tenantId  String
   staffId   String
   startAt   DateTime
-  endAt     DateTime
-  reason    String?
-  createdAt DateTime @default(now())
+  endAt        DateTime
+  reason       String?
+  status       LeaveStatus @default(PENDING)
+  type         LeaveType   @default(CASUAL)
+  approvedById String?
+  adminNote    String?
+  createdAt    DateTime    @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
   staff  Staff  @relation(fields: [staffId], references: [id])
@@ -262,6 +267,7 @@ model Service {
   tenantId        String
   categoryId      String
   name            String
+  image           String?
   durationMinutes Int
   price           Float
   tax             Float?        @default(0)
@@ -860,4 +866,16 @@ model AttendanceCorrection {
 
   attendance   StaffAttendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
 }
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
 
+enum LeaveType {
+  CASUAL
+  SICK
+  UNPAID
+  EARNED
+}

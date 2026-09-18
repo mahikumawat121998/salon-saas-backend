@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
-import { IsDate, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDate, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { LeaveType } from "@prisma/client";
 
 export class CreateLeaveDto {
   @IsDate()
@@ -15,4 +16,8 @@ export class CreateLeaveDto {
   @IsString()
   @IsOptional()
   reason?: string;
+
+  @IsEnum(LeaveType)
+  @IsOptional()
+  type?: LeaveType = LeaveType.CASUAL;
 }

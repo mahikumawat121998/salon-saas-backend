@@ -2,6 +2,10 @@ import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/
 import { PrismaService } from "../../common/database/prisma.service";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
+import { Queue } from "bullmq";
+import * as dotenv from "dotenv";
+dotenv.config({ override: true });
+
 import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
@@ -9,10 +13,19 @@ import { randomUUID } from "crypto";
 
 @Injectable()
 export class AuthService {
+  private notificationQueue: Queue;
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-  ) {}
+  ) {
+    this.notificationQueue = new Queue("notification", {
+      connection: {
+        host: process.env.REDIS_HOST || "127.0.0.1",
+        port: Number(process.env.REDIS_PORT) || 6379,
+      },
+    });
+  }
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findFirst({
@@ -161,51 +174,17 @@ export class AuthService {
       },
     });
 
-    const resetUrl = `http://localhost:3001/reset-password?token=${token}`;
-    console.log(`\n========================================`);
-    console.log(`[AUTH] Password Reset Link for ${user.email}:`);
-    console.log(`[AUTH] ${resetUrl}`);
-    console.log(`========================================\n`);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3001";
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
-    const gmailUser = process.env.GMAIL_USER || process.env.SMTP_USERNAME;
-    const gmailPass = process.env.GMAIL_PASS || process.env.SMTP_PASSWORD;
-
-    if (gmailUser && gmailPass) {
-      try {
-        const nodemailer = require("nodemailer");
-        const transporter = nodemailer.createTransport({
-          service: "gmail",
-          auth: {
-            user: gmailUser,
-            pass: gmailPass,
-          },
-        });
-
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM_MAIL || `"SalonOS Management" <${gmailUser}>`,
-          to: user.email,
-          subject: "Reset Your SalonOS Account Password",
-          html: `
-            <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 30px 10px;">
-              <div style="max-width: 520px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 36px 30px;">
-                <div style="text-align: center; margin-bottom: 24px;">
-                  <h2 style="color: #7C3AED; margin: 0;">✂️ SalonOS</h2>
-                  <p style="color: #64748b; font-size: 13px; margin: 4px 0 0 0;">Salon Management Suite</p>
-                </div>
-                <h3 style="color: #0f172a; font-size: 18px; margin-bottom: 12px;">Password Reset Request</h3>
-                <p style="color: #334155;">Click the button below to reset your SalonOS account password:</p>
-                <div style="text-align: center; margin: 28px 0;">
-                  <a href="${resetUrl}" style="background-color: #7C3AED; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 700; display: inline-block;">Reset Password</a>
-                </div>
-                <p style="color: #64748b; font-size: 13px;">This link will expire in 1 hour.</p>
-              </div>
-            </div>
-          `,
-        });
-        console.log(`[AUTH] Gmail Nodemailer sent password reset email to ${user.email}`);
-      } catch (mailErr: any) {
-        console.error(`[AUTH] Gmail Nodemailer error:`, mailErr?.message || mailErr);
-      }
+    try {
+      await this.notificationQueue.add("email.auth.reset-password", {
+        receiverEmail: user.email,
+        resetLink: resetUrl,
+        name: (user as any).firstName || "User",
+      });
+    } catch (error) {
+      console.error("Failed to queue password reset email:", error);
     }
 
     return {

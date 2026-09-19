@@ -15,7 +15,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'https://salon-saas-frontend.pages.dev',
       /\.salon-saas-frontend\.pages\.dev$/,
-      'https://app.blogcube.site',
+      'https://app.salonno.com',
       'https://app.salonno.com',
       'https://salonno.com',
     ],

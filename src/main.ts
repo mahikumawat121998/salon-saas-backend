@@ -16,6 +16,8 @@ async function bootstrap() {
       'https://salon-saas-frontend.pages.dev',
       /\.salon-saas-frontend\.pages\.dev$/,
       'https://app.blogcube.site',
+      'https://app.salonno.com',
+      'https://salonno.com',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

@@ -25,6 +25,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { PayrollModule } from "./modules/payroll/payroll.module";
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
     PayrollModule,
     AttendanceModule,
     UploadsModule,
+    AiModule,
   ],
 
   controllers: [AppController],

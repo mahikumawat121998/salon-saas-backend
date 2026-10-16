@@ -19,12 +19,22 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
   ) {
-    this.notificationQueue = new Queue("notification", {
-      connection: {
-        host: process.env.REDIS_HOST || "127.0.0.1",
-        port: Number(process.env.REDIS_PORT) || 6379,
-      },
-    });
+    try {
+      this.notificationQueue = new Queue("notification", {
+        connection: {
+          host: process.env.REDIS_HOST || "127.0.0.1",
+          port: Number(process.env.REDIS_PORT) || 6379,
+          maxRetriesPerRequest: null,
+          enableOfflineQueue: false,
+          retryStrategy: () => null, // Don't crash loop if local Redis is down
+        },
+      });
+      this.notificationQueue.on("error", () => {
+        // Silently handle offline Redis connection error
+      });
+    } catch {
+      // Redis optional
+    }
   }
 
   async login(dto: LoginDto) {
